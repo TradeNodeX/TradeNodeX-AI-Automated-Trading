@@ -24,6 +24,24 @@ class Settings(BaseSettings):
     binance_testnet_margin_mode: str = 'ISOLATED'
     binance_mainnet_default_leverage: int = 1
     binance_mainnet_margin_mode: str = 'ISOLATED'
+    bybit_mainnet_default_leverage: int = 1
+    bybit_mainnet_margin_mode: str = 'ISOLATED'
+    okx_mainnet_default_leverage: int = 1
+    okx_mainnet_margin_mode: str = 'ISOLATED'
+    kraken_mainnet_default_leverage: int = 1
+    bitmex_mainnet_default_leverage: int = 1
+    gateio_mainnet_default_leverage: int = 1
+    gateio_mainnet_margin_mode: str = 'ISOLATED'
+    coinbase_mainnet_default_leverage: int = 1
+    enable_binance_futures_mainnet: bool = False
+    enable_bybit_linear_mainnet: bool = False
+    enable_okx_swap_mainnet: bool = False
+    enable_kraken_futures_mainnet: bool = False
+    enable_bitmex_mainnet: bool = False
+    enable_gateio_futures_mainnet: bool = False
+    enable_coinbase_advanced_mainnet: bool = False
+    mainnet_requires_account_budget: bool = True
+    mainnet_requires_explicit_symbol_config: bool = True
     global_max_order_notional_usdt: float = 100
     global_daily_loss_limit_usdt: float = 50
     copy_engine_enabled: bool = True
@@ -51,6 +69,17 @@ class Settings(BaseSettings):
     @property
     def origin_list(self) -> list[str]:
         return [item.strip() for item in self.allowed_origins.split(',') if item.strip()]
+
+    def mainnet_enabled_for_exchange(self, exchange: str) -> bool:
+        return {
+            'BINANCE_FUTURES': self.enable_binance_futures_mainnet,
+            'BYBIT_LINEAR': self.enable_bybit_linear_mainnet,
+            'OKX_SWAP': self.enable_okx_swap_mainnet,
+            'KRAKEN_FUTURES': self.enable_kraken_futures_mainnet,
+            'BITMEX': self.enable_bitmex_mainnet,
+            'GATEIO_FUTURES': self.enable_gateio_futures_mainnet,
+            'COINBASE_ADVANCED': self.enable_coinbase_advanced_mainnet,
+        }.get(exchange, False)
 
 
 @lru_cache
