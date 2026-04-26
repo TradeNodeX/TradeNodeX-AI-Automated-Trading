@@ -40,3 +40,6 @@ asyncio_mode = "auto"
 [tool.ruff]
 line-length = 160
 target-version = "py312"
+
+[tool.ruff.lint]
+ignore = ["E501"]
