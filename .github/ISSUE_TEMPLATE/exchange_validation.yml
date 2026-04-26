@@ -1,0 +1,66 @@
+name: Exchange adapter validation
+description: Submit exchange adapter validation findings
+title: "[Exchange Validation]: "
+labels: ["exchange-validation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to report dry-run, sandbox/testnet, read-only, or minimum-size validation findings. Do not include API keys or private account data.
+  - type: dropdown
+    id: exchange
+    attributes:
+      label: Exchange
+      options:
+        - Binance Futures
+        - Bybit Linear
+        - OKX Swap
+        - Kraken Futures
+        - BitMEX
+        - Gate.io Futures
+        - Coinbase Advanced
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Validation mode
+      options:
+        - Dry-run
+        - Sandbox/Testnet
+        - Mainnet read-only
+        - Mainnet minimum-size order
+    validations:
+      required: true
+  - type: input
+    id: symbol
+    attributes:
+      label: Symbol tested
+      placeholder: BTCUSDT
+    validations:
+      required: true
+  - type: input
+    id: market_type
+    attributes:
+      label: Market type
+      placeholder: USDT perpetual / USD futures / spot
+    validations:
+      required: true
+  - type: textarea
+    id: precision
+    attributes:
+      label: Precision and minimum order findings
+      description: Include amount precision, price precision, min qty, min notional.
+  - type: textarea
+    id: order_status
+    attributes:
+      label: Order status and reconciliation observations
+  - type: textarea
+    id: errors
+    attributes:
+      label: Error codes or warnings
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
