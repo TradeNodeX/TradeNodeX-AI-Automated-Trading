@@ -1,0 +1,19 @@
+services:
+  tradenodex-aat-api:
+    build: .
+    container_name: tradenodex-aat-api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+
+  tradenodex-aat-worker:
+    build: .
+    container_name: tradenodex-aat-worker
+    restart: unless-stopped
+    env_file: .env
+    command: ["python", "-m", "tradenodex_aat.worker"]
+    volumes:
+      - ./data:/app/data
