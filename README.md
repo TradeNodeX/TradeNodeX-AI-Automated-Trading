@@ -1,39 +1,48 @@
 # TradeNodeX AI Automated Trading
 
-TradeNodeX AI Automated Trading is a self-hosted digital-asset robot trading control center. It is designed as the automated-bot sibling of `TradeNodeX-AI-Copy-Trading`, keeping the same black/white terminal control-plane style while replacing copy-routing workflows with robot strategy orchestration.
+**Version:** `v0.2.1-alpha.1`  
+**Status:** release-candidate alpha for self-hosted dry-run and Binance Futures Testnet validation.  
+**Mainnet:** blocked by default. Do not use with real funds until you complete your own testnet and minimum-size mainnet verification.
 
-## First-version scope
+TradeNodeX AI Automated Trading is a self-hosted digital-asset robot trading control center. It is the automated-bot sibling of `TradeNodeX-AI-Copy-Trading`, using the same black/white terminal control-plane standard while replacing copy-routing workflows with robot strategy orchestration.
 
-Supported robot templates:
+## What is included
 
-1. Funding-rate arbitrage
+Robot templates:
+
+1. Funding-rate monitor / funding leg executor
 2. Neutral contract grid
 3. DCA / average-cost investing
-4. Conservative spot grid
+4. Conservative spot-style grid
 5. Bounded martingale
 
 Exchange compatibility targets:
 
-- Binance Futures
-- Bybit Linear
-- OKX Swap
-- Kraken Futures
-- BitMEX
-- Gate.io Futures
-- Coinbase Advanced
+- Binance Futures — **Testnet live adapter implemented**
+- Bybit Linear — adapter placeholder, live path blocked
+- OKX Swap — adapter placeholder, live path blocked
+- Kraken Futures — adapter placeholder, live path blocked
+- BitMEX — adapter placeholder, live path blocked
+- Gate.io Futures — adapter placeholder, live path blocked
+- Coinbase Advanced — adapter placeholder, live path blocked
 
 ## Safety posture
 
 - Dry-run is enabled by default.
+- Write APIs require `Authorization: Bearer <TRADENODEX_AAT_OPERATOR_TOKEN>` or `X-Operator-Token`.
 - Global live execution is blocked unless `TRADENODEX_AAT_ENABLE_LIVE_TRADING=true`.
+- Mainnet execution is not enabled in this alpha release.
 - Withdrawal functionality is not implemented.
-- Operator writes are protected by `TRADENODEX_AAT_OPERATOR_TOKEN`.
+- API keys are encrypted before being stored in SQLite.
 - Every bot tick writes an audit log.
+- The worker sends the operator token when calling protected endpoints.
+- Binance Testnet adapter performs symbol precision and minimum order checks through CCXT market metadata.
 
 ## Quick start
 
 ```bash
 cp .env.example .env
+# Edit .env and replace TRADENODEX_AAT_OPERATOR_TOKEN and TRADENODEX_AAT_ENCRYPTION_KEY
 pip install -e .[dev]
 uvicorn tradenodex_aat.main:app --reload
 ```
@@ -44,38 +53,118 @@ Open:
 http://127.0.0.1:8000/
 ```
 
-Run the 24h worker in another process:
+The frontend contains an Operator Token field. Enter your local `TRADENODEX_AAT_OPERATOR_TOKEN` before using write actions.
+
+Run the worker in another process:
 
 ```bash
 python -m tradenodex_aat.worker
 ```
 
-## Docker cloud deployment
+## Docker deployment
 
 ```bash
 cp .env.example .env
+# Edit .env first; never use the example token in deployment.
 docker compose up -d --build
 ```
 
-API:
+The Docker image runs as a non-root user and exposes `/v1/health` for health checks.
 
+## Protected API contract
+
+Public read endpoints:
+
+- `GET /`
 - `GET /v1/health`
 - `GET /v1/dashboard`
 - `GET /v1/accounts`
-- `POST /v1/accounts`
 - `GET /v1/bots`
+- `GET /v1/orders`
+- `GET /v1/positions`
+- `GET /v1/logs`
+- `GET /v1/validation-plan`
+
+Protected write / execution endpoints:
+
+- `POST /v1/accounts`
 - `POST /v1/bots`
 - `PATCH /v1/bots/{bot_id}`
 - `POST /v1/bots/{bot_id}/start`
 - `POST /v1/bots/{bot_id}/pause`
 - `POST /v1/bots/{bot_id}/stop`
 - `POST /v1/bots/{bot_id}/tick`
-- `GET /v1/logs`
+- `POST /v1/reconcile`
+- `POST /v1/market-snapshot`
 
-## Frontend
+Example:
 
-The FastAPI app ships a static terminal-style control-plane preview at `/`, aligned with the existing TradeNodeX black/white frontend standard.
+```bash
+curl -H "Authorization: Bearer $TRADENODEX_AAT_OPERATOR_TOKEN" \
+  -X POST http://127.0.0.1:8000/v1/reconcile
+```
+
+## Binance Futures Testnet validation
+
+Configure local `.env` only. Never commit real values.
+
+```bash
+TRADENODEX_AAT_OPERATOR_TOKEN=replace-with-strong-token
+TRADENODEX_AAT_ENCRYPTION_KEY=replace-with-strong-random-key
+TRADENODEX_AAT_ENABLE_LIVE_TRADING=false
+TRADENODEX_AAT_BINANCE_FUTURES_TESTNET_API_KEY=your-testnet-key
+TRADENODEX_AAT_BINANCE_FUTURES_TESTNET_API_SECRET=your-testnet-secret
+```
+
+Dry-run closure:
+
+```bash
+python scripts/binance_testnet_validation.py --symbol BTCUSDT
+```
+
+Minimum-size testnet order path, only after confirming testnet credentials and testnet balance:
+
+```bash
+TRADENODEX_AAT_ENABLE_LIVE_TRADING=true python scripts/binance_testnet_validation.py \
+  --symbol BTCUSDT \
+  --max-position-usdt 20 \
+  --risk-per-tick-usdt 5 \
+  --place-test-order
+```
+
+## Architecture
+
+- **Core Control Plane:** FastAPI, terminal frontend, operator-token protected writes.
+- **Strategy Engine:** executable strategy decisions with normalized order schema.
+- **Execution Engine:** pre-trade risk, idempotency key, client order id, remote order lookup before retry, bounded retry.
+- **Risk Engine:** exchange compatibility, live gate, max position, global max notional, side/type validation.
+- **Market Data:** Binance Testnet ticker/funding snapshot with credential-free dry-run fallback.
+- **Reconciliation:** positions, open orders, and balances.
+- **Persistence:** SQLite with WAL, busy timeout, foreign keys, schema metadata, audit logs.
+- **Observability:** audit logs, structured request id helper, health endpoint.
+- **CI/CD:** pytest, ruff, bandit, pip-audit, Docker build.
+
+## Test
+
+```bash
+pip install -e .[dev]
+python -m ruff check src tests scripts
+python -m pytest -q
+```
+
+## Release limitations
+
+This is an alpha release candidate, not an institutionally certified production trading system. Before any mainnet work, add and validate:
+
+- Binance mainnet adapter as a separate class
+- mainnet-specific environment variables
+- leverage and margin-mode verification on mainnet
+- cancel / reduce-only / order update path
+- balance and order reconciliation against exchange history
+- kill switch and daily drawdown enforcement
+- full WebSocket market-data and user-data streams
+- PostgreSQL option for multi-process or higher-write deployments
 
 ## Legal notice
 
-Exchange names are used only to describe compatibility targets. This project is not affiliated with those exchanges. This software is not financial advice, does not custody funds, and does not guarantee trading performance.
+Exchange names are used only to describe exchange connectivity targets. This project is not affiliated with those exchanges. This software is not financial advice, does not custody funds, and does not guarantee trading performance.
