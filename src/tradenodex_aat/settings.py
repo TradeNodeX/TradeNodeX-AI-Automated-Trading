@@ -14,12 +14,19 @@ class Settings(BaseSettings):
     default_dry_run: bool = True
     tick_seconds: int = 15
     worker_interval_seconds: int = 10
+    reconcile_every_ticks: int = 6
     api_base: str = 'http://127.0.0.1:8000'
     max_retry_attempts: int = 3
+    market_stream_enabled: bool = False
+    rate_limit_per_minute: int = 60
+    allowed_origins: str = 'http://127.0.0.1:8000,http://localhost:8000'
+    binance_testnet_default_leverage: int = 1
+    binance_testnet_margin_mode: str = 'ISOLATED'
+    global_max_order_notional_usdt: float = 100
+    global_daily_loss_limit_usdt: float = 50
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
     alert_webhook_url: str | None = None
-    market_stream_enabled: bool = False
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_user: str | None = None
@@ -29,6 +36,10 @@ class Settings(BaseSettings):
 
     def ensure_data_dir(self) -> None:
         Path(self.db_path).expanduser().resolve().parent.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def origin_list(self) -> list[str]:
+        return [item.strip() for item in self.allowed_origins.split(',') if item.strip()]
 
 
 @lru_cache
