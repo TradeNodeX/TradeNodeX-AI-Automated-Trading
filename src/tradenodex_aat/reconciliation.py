@@ -1,11 +1,13 @@
 from typing import Any
 
 from .adapters import build_adapter
+from .credentials import load_account_credentials
 from .db import add_log, list_accounts, list_positions, upsert_position
 
 
 async def reconcile_account(account: dict[str, Any]) -> dict[str, Any]:
-    adapter = build_adapter(account['exchange'], dry_run=bool(account.get('dry_run', True)))
+    credentials = load_account_credentials(account.get('id'), account['exchange'], account.get('environment', 'TESTNET'))
+    adapter = build_adapter(account['exchange'], dry_run=bool(account.get('dry_run', True)), credentials=credentials)
     remote_positions = await adapter.fetch_positions()
     stored = []
     for position in remote_positions:
