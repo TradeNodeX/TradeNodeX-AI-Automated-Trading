@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import asdict
 from pathlib import Path
 from typing import Literal
@@ -6,8 +7,11 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
+from .account_controls import init_account_control_schema
 from .auth import require_operator_token
 from .branding import legal_payload
+from .copy_api import router as copy_router
+from .copy_engine import run_copy_execution_worker
 from .db import add_log, create_account, create_bot, get_bot, init_db, list_accounts, list_bots, list_logs, list_orders, list_positions, update_bot
 from .executor_release import execute_strategy_orders_release
 from .legal_middleware import TradeNodeXBrandingHeadersMiddleware
@@ -15,6 +19,7 @@ from .market_stream import poll_market_snapshot
 from .observability import RequestContextMiddleware
 from .reconciliation import reconcile_all_accounts
 from .settings import get_settings
+from .signal_bus import SIGNAL_BUS
 from .strategies import MarketSnapshot, RiskLimits, run_strategy
 from .validation import validation_plan
 from .version import __version__
@@ -55,10 +60,15 @@ class MarketSnapshotIn(BaseModel):
 app = FastAPI(title='TradeNodeX AI Automated Trading', version=__version__)
 app.add_middleware(TradeNodeXBrandingHeadersMiddleware)
 app.add_middleware(RequestContextMiddleware)
+app.include_router(copy_router)
 
 @app.on_event('startup')
-def startup() -> None:
+async def startup() -> None:
     init_db()
+    init_account_control_schema()
+    if get_settings().copy_engine_enabled:
+        asyncio.create_task(run_copy_execution_worker())
+        add_log('Single-account fast copy worker scheduled', detail={'enabled': True})
 
 @app.get('/', response_class=HTMLResponse)
 def ui():
@@ -67,7 +77,7 @@ def ui():
 @app.get('/v1/health')
 def health():
     s = get_settings()
-    return {'ok': True, 'service': 'tradenodex-aat', 'version': __version__, 'live_trading_enabled': s.enable_live_trading, 'release_channel': 'alpha', 'brand': 'TradeNodeX'}
+    return {'ok': True, 'service': 'tradenodex-aat', 'version': __version__, 'live_trading_enabled': s.enable_live_trading, 'copy_engine_enabled': s.copy_engine_enabled, 'release_channel': 'alpha', 'brand': 'TradeNodeX'}
 
 @app.get('/v1/legal')
 def legal(): return legal_payload()
@@ -75,7 +85,7 @@ def legal(): return legal_payload()
 @app.get('/v1/dashboard')
 def dashboard():
     bots = list_bots(); accounts = list_accounts(); logs = list_logs(20); orders = list_orders(20); positions = list_positions()
-    return {'metrics': {'bots': len(bots), 'running': sum(1 for b in bots if b['status'] == 'RUNNING'), 'accounts': len(accounts), 'audit_logs': len(logs), 'orders': len(orders), 'positions': len(positions)}, 'bots': bots, 'accounts': accounts, 'logs': logs, 'orders': orders, 'positions': positions, 'settings': {'live_trading_enabled': get_settings().enable_live_trading}, 'legal': legal_payload()}
+    return {'metrics': {'bots': len(bots), 'running': sum(1 for b in bots if b['status'] == 'RUNNING'), 'accounts': len(accounts), 'audit_logs': len(logs), 'orders': len(orders), 'positions': len(positions), 'signal_queue': SIGNAL_BUS.queue.qsize()}, 'bots': bots, 'accounts': accounts, 'logs': logs, 'orders': orders, 'positions': positions, 'settings': {'live_trading_enabled': get_settings().enable_live_trading, 'copy_engine_enabled': get_settings().copy_engine_enabled}, 'legal': legal_payload()}
 
 @app.get('/v1/accounts')
 def api_list_accounts(): return list_accounts()
