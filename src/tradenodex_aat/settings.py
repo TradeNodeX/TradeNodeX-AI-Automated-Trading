@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     telegram_chat_id: str | None = None
     alert_webhook_url: str | None = None
     market_stream_enabled: bool = False
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str | None = None
+    smtp_to: str | None = None
 
     def ensure_data_dir(self) -> None:
         Path(self.db_path).expanduser().resolve().parent.mkdir(parents=True, exist_ok=True)
