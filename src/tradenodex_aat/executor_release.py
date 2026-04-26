@@ -5,9 +5,19 @@ from typing import Any
 from .adapters import build_adapter
 from .alerts import notify_execution_event
 from .credentials import load_account_credentials
-from .db import add_log, insert_order, update_order
+from .db import add_log, insert_order, list_accounts, update_order
 from .risk import pre_trade_risk_check
 from .settings import get_settings
+
+
+def _resolve_account(bot: dict[str, Any]) -> dict[str, Any]:
+    account_id = bot.get('account_id')
+    accounts = list_accounts()
+    if account_id:
+        for account in accounts:
+            if account['id'] == account_id:
+                return account
+    return {'id': account_id or 'env-fallback', 'name': 'Environment Fallback Account', 'exchange': bot['exchange'], 'environment': 'TESTNET', 'dry_run': bool(bot.get('dry_run', True)), 'base_currency': bot.get('quote_currency', 'USDT')}
 
 
 async def execute_strategy_orders_release(bot: dict[str, Any], decision: dict[str, Any]) -> dict[str, Any]:
@@ -17,9 +27,10 @@ async def execute_strategy_orders_release(bot: dict[str, Any], decision: dict[st
         add_log('Pre-trade risk rejected orders', level='WARN', bot_id=bot['id'], detail={'reason': checked.reason})
         await notify_execution_event('TradeNodeX risk rejection', {'bot_id': bot['id'], 'reason': checked.reason})
         return {'accepted': False, 'reason': checked.reason, 'orders': []}
+    account = _resolve_account(bot)
     dry_run = bool(bot.get('dry_run', True))
-    creds = load_account_credentials(bot.get('account_id'), bot['exchange'], 'TESTNET')
-    adapter = build_adapter(bot['exchange'], dry_run=dry_run, credentials=creds)
+    creds = load_account_credentials(account.get('id') if account.get('id') != 'env-fallback' else None, bot['exchange'], account.get('environment', 'TESTNET'))
+    adapter = build_adapter(bot['exchange'], dry_run=dry_run, credentials=creds, account=account)
     results = []
     for src in checked.normalized_orders:
         symbol = src.get('symbol') or decision.get('symbol') or (bot.get('symbols') or ['BTCUSDT'])[0]
@@ -64,5 +75,5 @@ async def execute_strategy_orders_release(bot: dict[str, Any], decision: dict[st
             failure = {'idempotency_key': idem, 'client_order_id': client_id, 'status': 'FAILED', 'error': last_error}
             results.append(failure)
             await notify_execution_event('TradeNodeX order failure', {'bot_id': bot['id'], 'failure': failure})
-    add_log('Release execution pipeline completed', bot_id=bot['id'], detail={'decision_action': decision.get('action'), 'results': results})
+    add_log('Release execution pipeline completed', bot_id=bot['id'], detail={'decision_action': decision.get('action'), 'account_id': account.get('id'), 'results': results})
     return {'accepted': True, 'reason': checked.reason, 'orders': results}
