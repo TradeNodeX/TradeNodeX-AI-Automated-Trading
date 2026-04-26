@@ -6,10 +6,22 @@ from .credentials import load_env_credentials
 from .db import add_log, store_market_snapshot
 
 
+def fallback_market_snapshot(exchange: str, symbol: str) -> dict:
+    base_price = 50000.0 if symbol.startswith('BTC') else 2500.0 if symbol.startswith('ETH') else 100.0
+    return {'exchange': exchange, 'symbol': symbol, 'mark_price': base_price, 'funding_rate': 0.0, 'bid': base_price * 0.9999, 'ask': base_price * 1.0001, 'source': 'dry-run-fallback'}
+
+
 async def poll_market_snapshot(exchange: str, symbol: str, environment: str = 'TESTNET') -> dict:
     credentials = load_env_credentials(exchange, environment)
-    adapter = build_adapter(exchange, dry_run=True, credentials=credentials)
-    snapshot = await adapter.fetch_market_snapshot(symbol)
+    if not credentials.ready:
+        snapshot = fallback_market_snapshot(exchange, symbol)
+    else:
+        adapter = build_adapter(exchange, dry_run=True, credentials=credentials)
+        try:
+            snapshot = await adapter.fetch_market_snapshot(symbol)
+        except Exception as exc:
+            snapshot = fallback_market_snapshot(exchange, symbol)
+            snapshot['source'] = f'dry-run-fallback-after-error:{type(exc).__name__}'
     stored = store_market_snapshot(snapshot)
     add_log('Market snapshot stored', detail={'exchange': exchange, 'symbol': symbol, 'source': stored['source']})
     return stored
