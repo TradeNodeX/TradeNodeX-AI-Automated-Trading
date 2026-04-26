@@ -10,6 +10,7 @@ from .auth import require_operator_token
 from .db import add_log, create_account, create_bot, get_bot, init_db, list_accounts, list_bots, list_logs, list_orders, list_positions, update_bot
 from .executor_rc import execute_strategy_orders_rc
 from .market_stream import poll_market_snapshot
+from .observability import RequestContextMiddleware
 from .reconciliation import reconcile_all_accounts
 from .settings import get_settings
 from .strategies import MarketSnapshot, RiskLimits, run_strategy
@@ -50,6 +51,7 @@ class MarketSnapshotIn(BaseModel):
     symbol: str
 
 app = FastAPI(title='TradeNodeX AI Automated Trading', version=__version__)
+app.add_middleware(RequestContextMiddleware)
 
 @app.on_event('startup')
 def startup() -> None:
