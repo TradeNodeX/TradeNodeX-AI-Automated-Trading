@@ -14,7 +14,7 @@ def test_neutral_grid_respects_max_levels():
     limits = RiskLimits(max_position_usdt=100, risk_per_tick_usdt=10, max_grid_levels=4)
     decision = run_strategy('NEUTRAL_CONTRACT_GRID', snapshot, limits)
     assert decision.action == 'PLACE_NEUTRAL_GRID'
-    assert len(decision.orders) == 16  # default 8 levels, two sides each, max_grid_levels only caps helper-level input
+    assert len(decision.orders) == 8  # 4 levels, two sides each
 
 
 def test_dca_generates_one_order():
