@@ -1,1 +1,1 @@
-from .api_v2 import app
+from .api_rc import app
