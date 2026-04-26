@@ -35,10 +35,13 @@ def load_account_credentials(account_id: str | None, exchange: str, fallback_env
         with connect() as conn:
             row = conn.execute('SELECT * FROM accounts WHERE id=?', (account_id,)).fetchone()
         if row:
-            return ExchangeCredentials(
+            creds = ExchangeCredentials(
                 api_key=decrypt_secret(row['api_key_encrypted']),
                 api_secret=decrypt_secret(row['api_secret_encrypted']),
                 api_passphrase=decrypt_secret(row['api_passphrase_encrypted']),
                 environment=row['environment'],
             )
+            if creds.ready:
+                return creds
+            return load_env_credentials(exchange, row['environment'] or fallback_environment)
     return load_env_credentials(exchange, fallback_environment)
