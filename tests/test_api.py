@@ -17,6 +17,8 @@ def test_dashboard_contains_seed_bots():
     payload = response.json()
     assert payload['metrics']['bots'] >= 5
     assert len(payload['bots']) >= 5
+    assert 'orders' in payload
+    assert 'positions' in payload
 
 
 def test_create_and_tick_bot():
@@ -34,4 +36,15 @@ def test_create_and_tick_bot():
     bot = create_response.json()
     tick_response = client.post(f"/v1/bots/{bot['id']}/tick")
     assert tick_response.status_code == 200
-    assert tick_response.json()['action'] == 'DRY_RUN_PLAN'
+    payload = tick_response.json()
+    assert payload['decision']['action'] in {'SCHEDULE_DCA_BUY', 'WAIT'}
+    assert payload['execution']['accepted'] is True
+
+
+def test_validation_plan_endpoint():
+    client = TestClient(app)
+    response = client.get('/v1/validation-plan')
+    assert response.status_code == 200
+    payload = response.json()
+    assert 'testnet' in payload
+    assert 'small_size_mainnet' in payload
