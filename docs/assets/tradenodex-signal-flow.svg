@@ -1,0 +1,47 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="640" fill="#080808"/>
+  <rect x="40" y="40" width="1200" height="560" fill="#0F0F0F" stroke="#2A2A2A"/>
+  <text x="80" y="100" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800">TRADENODEX AI AUTOMATED TRADING</text>
+  <text x="80" y="132" fill="#A0A0A0" font-family="Inter, Arial, sans-serif" font-size="16">WebSocket Signals · Account-Level Risk · Execution Worker · Exchange Adapter Routes</text>
+  <g font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">
+    <rect x="80" y="220" width="170" height="86" fill="#151515" stroke="#3A3A3A"/>
+    <text x="106" y="258" fill="#FFFFFF">SIGNAL INGRESS</text>
+    <text x="105" y="284" fill="#858585" font-size="12">WebSocket / HTTP</text>
+
+    <rect x="305" y="220" width="170" height="86" fill="#151515" stroke="#3A3A3A"/>
+    <text x="354" y="258" fill="#FFFFFF">QUEUE</text>
+    <text x="333" y="284" fill="#858585" font-size="12">SignalBus</text>
+
+    <rect x="530" y="220" width="170" height="86" fill="#151515" stroke="#3A3A3A"/>
+    <text x="557" y="258" fill="#FFFFFF">RISK GATE</text>
+    <text x="557" y="284" fill="#858585" font-size="12">Budget / Limit</text>
+
+    <rect x="755" y="220" width="170" height="86" fill="#151515" stroke="#3A3A3A"/>
+    <text x="782" y="258" fill="#FFFFFF">EXEC WORKER</text>
+    <text x="786" y="284" fill="#858585" font-size="12">Idempotent</text>
+
+    <rect x="980" y="220" width="170" height="86" fill="#151515" stroke="#3A3A3A"/>
+    <text x="1012" y="258" fill="#FFFFFF">ADAPTERS</text>
+    <text x="1006" y="284" fill="#858585" font-size="12">Exchange Routes</text>
+  </g>
+  <g stroke="#FFFFFF" stroke-width="2" opacity="0.8">
+    <path d="M250 263H305"/><path d="M475 263H530"/><path d="M700 263H755"/><path d="M925 263H980"/>
+    <path d="M300 258L305 263L300 268"/><path d="M525 258L530 263L525 268"/><path d="M750 258L755 263L750 268"/><path d="M975 258L980 263L975 268"/>
+  </g>
+  <rect x="80" y="390" width="330" height="120" fill="#101010" stroke="#2A2A2A"/>
+  <text x="105" y="428" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800">CONTROL PLANE</text>
+  <text x="105" y="458" fill="#A0A0A0" font-family="Inter, Arial, sans-serif" font-size="14">FastAPI · Docker · SQLite WAL</text>
+  <text x="105" y="482" fill="#A0A0A0" font-family="Inter, Arial, sans-serif" font-size="14">Operator Token · Audit Trail</text>
+
+  <rect x="475" y="390" width="330" height="120" fill="#101010" stroke="#2A2A2A"/>
+  <text x="500" y="428" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800">RISK & EXECUTION</text>
+  <text x="500" y="458" fill="#A0A0A0" font-family="Inter, Arial, sans-serif" font-size="14">Account Budgets · Rate Limits</text>
+  <text x="500" y="482" fill="#A0A0A0" font-family="Inter, Arial, sans-serif" font-size="14">Circuit Breakers · Latency Metrics</text>
+
+  <rect x="870" y="390" width="280" height="120" fill="#101010" stroke="#2A2A2A"/>
+  <text x="895" y="428" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800">EXCHANGE ROUTES</text>
+  <text x="895" y="458" fill="#A0A0A0" font-family="Inter, Arial, sans-serif" font-size="14">Binance Testnet</text>
+  <text x="895" y="482" fill="#A0A0A0" font-family="Inter, Arial, sans-serif" font-size="14">Controlled Opt-in Routes</text>
+
+  <text x="80" y="565" fill="#707070" font-family="Inter, Arial, sans-serif" font-size="13">MIT Open Source · Self-hosted · TradeNodeX.com</text>
+</svg>
