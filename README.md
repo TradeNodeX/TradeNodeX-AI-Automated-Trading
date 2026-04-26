@@ -1,22 +1,76 @@
 # TradeNodeX AI Automated Trading
 
-**Version:** `v0.2.1-alpha.1`  
-**Status:** release-candidate alpha for self-hosted dry-run, Binance Futures Testnet validation, and single-account fast-copy architecture preview.  
-**Mainnet:** blocked by default. Do not use with real funds until you complete your own testnet and minimum-size mainnet verification.
+<p align="center">
+  <strong>Open-source crypto bot control plane for WebSocket signals, account-level risk controls, Binance Futures Testnet validation, and controlled opt-in exchange adapters.</strong>
+</p>
 
-TradeNodeX AI Automated Trading is a self-hosted digital-asset robot trading control center. It is the automated-bot sibling of `TradeNodeX-AI-Copy-Trading`, using the same black/white terminal control-plane standard while adding robot orchestration and a single-account fast-copy signal path.
+<p align="center">
+  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/License-MIT-white.svg"></a>
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.12+-blue.svg">
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.115+-green.svg">
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-ready-blue.svg">
+  <img alt="Status" src="https://img.shields.io/badge/Status-Alpha-orange.svg">
+  <img alt="Exchange Routes" src="https://img.shields.io/badge/Exchange%20Routes-Controlled%20Opt--in-red.svg">
+</p>
 
-## What is included
+<p align="center">
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#single-account-fast-copy">Fast Copy</a> ·
+  <a href="#exchange-support-matrix">Exchange Matrix</a> ·
+  <a href="./docs/CONTROLLED_OPT_IN_MAINNET_CN.md">Mainnet Route</a> ·
+  <a href="./docs/SINGLE_ACCOUNT_FAST_COPY_CN.md">中文文档</a>
+</p>
 
-Robot templates:
+---
 
-1. Funding-rate monitor / funding leg executor
-2. Neutral contract grid
-3. DCA / average-cost investing
-4. Conservative spot-style grid
-5. Bounded martingale
+## Overview
 
-Single-account fast-copy path:
+**TradeNodeX AI Automated Trading** is a self-hosted digital-asset bot control plane designed for developers, quant traders, and operators who want a transparent open-source foundation for:
+
+- WebSocket / HTTP signal ingestion
+- single-account fast-copy execution architecture
+- account-level risk budgets, rate limits, and failure circuit breakers
+- strategy bot templates for DCA, grids, martingale, and funding-rate workflows
+- Binance Futures Testnet validation
+- controlled opt-in adapter routes for major exchanges
+- Docker-based cloud deployment
+
+It follows the black/white terminal control-plane design language of `TradeNodeX-AI-Copy-Trading`, but focuses on automated bot orchestration and signal-to-execution infrastructure.
+
+> Current version: `v0.2.1-alpha.1`. This is an alpha release candidate for infrastructure validation and developer testing.
+
+---
+
+## Why this project
+
+Most open-source trading bots mix strategy logic, exchange execution, secrets, and risk controls into a single fragile script. TradeNodeX AAT separates the system into a clearer control-plane architecture:
+
+```text
+Signal Ingress → Queue → Risk Gate → Execution Worker → Adapter → Reconciliation → Audit Trail
+```
+
+Core design goals:
+
+- **Operator-controlled execution** — write/execution APIs are protected by an operator token.
+- **Signal-native workflow** — WebSocket and HTTP signal inputs are first-class citizens.
+- **Account-level controls** — risk budget, rate limit, circuit breaker, and latency metrics are account-scoped.
+- **Exchange adapter discipline** — exchange routes are explicit, configurable, and auditable.
+- **Self-hosted deployment** — API keys and databases remain under the operator’s control.
+- **Open-source extensibility** — MIT licensed, FastAPI-based, Docker-ready, and modular.
+
+---
+
+## Feature highlights
+
+### Bot templates
+
+- Funding-rate monitor / funding leg executor
+- Neutral contract grid
+- DCA / average-cost investing
+- Conservative spot-style grid
+- Bounded martingale
+
+### Single-account fast-copy
 
 - WebSocket signal channel: `ws://host/ws/signals?token=<operator-token>`
 - HTTP signal ingress: `POST /v1/copy/signals`
@@ -28,31 +82,76 @@ Single-account fast-copy path:
 - Account-level failure circuit breaker
 - Signal multiplier and notional mapping
 - Execution event latency tracking
-- Copy metrics: `GET /v1/copy/metrics`
+- Copy metrics endpoint: `GET /v1/copy/metrics`
 
-Exchange compatibility targets:
+### Execution and risk
 
-- Binance Futures — **Testnet live adapter implemented**
-- Bybit Linear — adapter placeholder, live path blocked
-- OKX Swap — adapter placeholder, live path blocked
-- Kraken Futures — adapter placeholder, live path blocked
-- BitMEX — adapter placeholder, live path blocked
-- Gate.io Futures — adapter placeholder, live path blocked
-- Coinbase Advanced — adapter placeholder, live path blocked
+- Operator-token protected write APIs
+- API key encryption before persistence
+- Idempotency key generation
+- Client order ID mapping
+- Bounded retry flow
+- Remote order lookup for non-dry-run paths
+- Account-level notional budget
+- Slippage bps budget
+- Failure circuit breaker
+- Audit/event trail
 
-## Safety posture
+### Deployment and operations
 
-- Dry-run is enabled by default.
-- Write APIs require `Authorization: Bearer <TRADENODEX_AAT_OPERATOR_TOKEN>` or `X-Operator-Token`.
-- WebSocket signal ingestion requires `?token=<TRADENODEX_AAT_OPERATOR_TOKEN>`.
-- Global live execution is blocked unless `TRADENODEX_AAT_ENABLE_LIVE_TRADING=true`.
-- Mainnet execution is not enabled in this alpha release.
-- Withdrawal functionality is not implemented.
-- API keys are encrypted before being stored in SQLite.
-- Every bot tick and copy signal writes an audit/event trail.
-- The worker sends the operator token when calling protected endpoints.
-- Binance Testnet adapter performs symbol precision and minimum order checks through CCXT market metadata.
-- Every HTTP response includes TradeNodeX project/risk headers.
+- FastAPI backend
+- Terminal-style frontend
+- SQLite WAL persistence
+- Dockerfile and Docker Compose
+- Health endpoint
+- Smoke test scripts
+- CI with pytest, ruff, bandit, pip-audit, Docker build
+
+---
+
+## Architecture
+
+![TradeNodeX Signal Flow](./docs/assets/tradenodex-signal-flow.svg)
+
+```text
+TradingView / External Signal / Manual Signal
+        │
+        ▼
+WebSocket / HTTP Signal Ingress
+        │
+        ▼
+SignalBus Queue
+        │
+        ▼
+Copy Execution Worker
+        │
+        ▼
+Account Risk Budget / Rate Limit / Circuit Breaker
+        │
+        ▼
+Exchange Adapter
+        │
+        ▼
+Orders / Positions / Balances / Audit Logs
+```
+
+---
+
+## Exchange support matrix
+
+| Exchange | Dry-run | Testnet / Sandbox | Controlled Opt-in Mainnet Route | Default Mainnet |
+|---|---:|---:|---:|---:|
+| Binance Futures | Yes | Implemented | Route available | Off |
+| Bybit Linear | Yes | Validation required | Route available | Off |
+| OKX Swap | Yes | Validation required | Route available | Off |
+| Kraken Futures | Yes | Validation required | Route available | Off |
+| BitMEX | Yes | Validation required | Route available | Off |
+| Gate.io Futures | Yes | Validation required | Route available | Off |
+| Coinbase Advanced | Yes | Validation required | Route available | Off |
+
+Controlled opt-in routes require explicit exchange-level flags, account configuration, credentials, operator authentication, account risk budgets, and validation. See [`docs/CONTROLLED_OPT_IN_MAINNET_CN.md`](./docs/CONTROLLED_OPT_IN_MAINNET_CN.md).
+
+---
 
 ## Quick start
 
@@ -69,25 +168,57 @@ Open:
 http://127.0.0.1:8000/
 ```
 
-The frontend contains an Operator Token field. Enter your local `TRADENODEX_AAT_OPERATOR_TOKEN` before using write actions.
-
 Run the worker in another process:
 
 ```bash
 python -m tradenodex_aat.worker
 ```
 
-## Docker deployment
+### Docker
 
 ```bash
 cp .env.example .env
-# Edit .env first; never use the example token in deployment.
+# Edit .env first.
 docker compose up -d --build
 ```
 
-The Docker image runs as a non-root user and exposes `/v1/health` for health checks.
+---
 
-## Protected API contract
+## Single-account fast copy
+
+HTTP signal example:
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/copy/signals \
+  -H "Authorization: Bearer $TRADENODEX_AAT_OPERATOR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"BTCUSDT","side":"BUY","order_type":"MARKET","notional_usdt":5,"multiplier":1,"slippage_bps":20}'
+```
+
+WebSocket signal endpoint:
+
+```text
+ws://127.0.0.1:8000/ws/signals?token=<TRADENODEX_AAT_OPERATOR_TOKEN>
+```
+
+WebSocket message:
+
+```json
+{"symbol":"BTCUSDT","side":"BUY","order_type":"MARKET","notional_usdt":5,"multiplier":1,"slippage_bps":20}
+```
+
+Account risk budget:
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/accounts/<account_id>/risk-budget \
+  -H "Authorization: Bearer $TRADENODEX_AAT_OPERATOR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"max_order_notional_usdt":50,"max_daily_notional_usdt":500,"max_position_notional_usdt":500,"min_free_balance_usdt":10,"max_slippage_bps":30,"rate_limit_per_minute":30,"failures_before_circuit_break":3,"circuit_break_seconds":300}'
+```
+
+---
+
+## API surface
 
 Public read endpoints:
 
@@ -119,49 +250,7 @@ Protected write / execution endpoints:
 - `POST /v1/reconcile`
 - `POST /v1/market-snapshot`
 
-Example:
-
-```bash
-curl -H "Authorization: Bearer $TRADENODEX_AAT_OPERATOR_TOKEN" \
-  -X POST http://127.0.0.1:8000/v1/reconcile
-```
-
-## Single-account fast-copy usage
-
-HTTP signal:
-
-```bash
-curl -X POST http://127.0.0.1:8000/v1/copy/signals \
-  -H "Authorization: Bearer $TRADENODEX_AAT_OPERATOR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"symbol":"BTCUSDT","side":"BUY","order_type":"MARKET","notional_usdt":5,"multiplier":1,"slippage_bps":20}'
-```
-
-WebSocket signal:
-
-```text
-ws://127.0.0.1:8000/ws/signals?token=<TRADENODEX_AAT_OPERATOR_TOKEN>
-```
-
-Message:
-
-```json
-{"symbol":"BTCUSDT","side":"BUY","order_type":"MARKET","notional_usdt":5,"multiplier":1,"slippage_bps":20}
-```
-
-Account risk budget:
-
-```bash
-curl -X POST http://127.0.0.1:8000/v1/accounts/<account_id>/risk-budget \
-  -H "Authorization: Bearer $TRADENODEX_AAT_OPERATOR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"max_order_notional_usdt":50,"max_daily_notional_usdt":500,"max_position_notional_usdt":500,"min_free_balance_usdt":10,"max_slippage_bps":30,"rate_limit_per_minute":30,"failures_before_circuit_break":3,"circuit_break_seconds":300}'
-```
-
-## Legal and branding endpoints
-
-- `GET /v1/legal` returns the TradeNodeX copyright, MIT license, risk notice, affiliation notice, and disclaimer payload.
-- Response headers include `X-TradeNodeX-Project`, `X-TradeNodeX-Owner`, `X-TradeNodeX-Copyright`, and `X-TradeNodeX-Risk-Notice`.
+---
 
 ## Binance Futures Testnet validation
 
@@ -187,7 +276,7 @@ Generic API smoke test:
 python scripts/smoke_test_api.py --symbol BTCUSDT
 ```
 
-Minimum-size testnet order path, only after confirming testnet credentials and testnet balance:
+Minimum-size testnet order path:
 
 ```bash
 TRADENODEX_AAT_ENABLE_LIVE_TRADING=true python scripts/binance_testnet_validation.py \
@@ -197,51 +286,52 @@ TRADENODEX_AAT_ENABLE_LIVE_TRADING=true python scripts/binance_testnet_validatio
   --place-test-order
 ```
 
-## Architecture
+---
 
-- **Core Control Plane:** FastAPI, terminal frontend, operator-token protected writes, TradeNodeX branding/risk headers.
-- **Single-Account Fast Copy:** WebSocket/HTTP signal ingress, in-process queue, execution worker, latency metrics, failure circuit breaker.
-- **Strategy Engine:** executable strategy decisions with normalized order schema.
-- **Execution Engine:** pre-trade risk, idempotency key, client order id, remote order lookup before non-dry-run retry, bounded retry.
-- **Risk Engine:** exchange compatibility, live gate, max position, global max notional, account-level budgets, slippage bps, rate limit, circuit breaker.
-- **Market Data:** Binance Testnet ticker/funding snapshot with credential-free dry-run fallback.
-- **Reconciliation:** positions, open orders, and balances.
-- **Persistence:** SQLite with WAL, busy timeout, foreign keys, schema metadata, audit logs, signal events, execution events, account budgets.
-- **Observability:** audit logs, request id headers, health endpoint, TradeNodeX response headers, copy metrics.
-- **CI/CD:** pytest, ruff, bandit, pip-audit, Docker build.
+## Documentation
 
-## Test
+- [Single-account fast-copy architecture CN](./docs/SINGLE_ACCOUNT_FAST_COPY_CN.md)
+- [Controlled opt-in mainnet adapter route CN](./docs/CONTROLLED_OPT_IN_MAINNET_CN.md)
+- [Binance Futures Testnet live adapter CN](./docs/BINANCE_TESTNET_LIVE_ADAPTER_CN.md)
+- [Cloud deployment guide](./docs/DEPLOYMENT.md)
+- [FAQ](./docs/FAQ.md)
+- [Roadmap](./ROADMAP.md)
+- [Changelog](./CHANGELOG.md)
+- [Contributing](./CONTRIBUTING.md)
+- [Security](./SECURITY.md)
 
-```bash
-pip install -e .[dev]
-python -m ruff check src tests scripts
-python -m pytest -q
-```
+---
 
-Server-level smoke test after starting API:
+## Roadmap snapshot
 
-```bash
-python scripts/smoke_test_api.py --api-base http://127.0.0.1:8000 --operator-token "$TRADENODEX_AAT_OPERATOR_TOKEN"
-```
+| Version | Focus |
+|---|---|
+| `v0.2.x` | Bot control plane, Binance Futures Testnet, protected APIs |
+| `v0.3.x` | Single-account fast-copy, signal queue, account risk budgets |
+| `v0.4.x` | Exchange validation templates, stronger reconciliation, private streams |
+| `v0.5.x` | Redis/NATS queue option, PostgreSQL option, deployment hardening |
+| `v1.0` | Production-grade self-hosted release candidate after exchange-specific validation |
 
-## Release limitations
+---
 
-This is an alpha release candidate, not an institutionally certified production trading system. Current scope is dry-run, Binance Testnet validation, and single-account fast-copy architecture preview.
+## Community and validation
 
-Before any mainnet work, add and validate:
+Exchange adapters require real-world validation. Contributions are especially welcome for:
 
-- Each exchange mainnet adapter as a separate reviewed implementation
-- Mainnet-specific environment variables and credential scopes
-- Leverage and margin-mode verification on each exchange
-- Cancel / replace / reduce-only / close-position paths
-- Balance and order reconciliation against exchange history
-- Kill switch and daily drawdown enforcement
-- Full WebSocket market-data and user-data streams
-- Redis Streams/NATS for queue durability
-- PostgreSQL option for multi-process or higher-write deployments
+- exchange-specific symbol mapping
+- sandbox/testnet validation reports
+- market metadata edge cases
+- order status/error-code mapping
+- user-data/private WebSocket streams
+- reconciliation test cases
+- deployment guides
 
-## Copyright and legal notice
+Use the issue templates to submit bug reports, feature requests, and exchange validation results.
+
+---
+
+## Risk and legal notice
+
+This software is not financial advice, does not custody funds, and does not guarantee trading performance. Automated trading can cause losses. Exchange names are used only to describe connectivity targets. This project is not affiliated with, endorsed by, or sponsored by Binance, Bybit, OKX, Coinbase, Kraken, BitMEX, Gate.io, or any other exchange.
 
 Copyright (c) 2026 TradeNodeX. Released under the MIT License.
-
-Exchange names are used only to describe exchange connectivity targets. This project is not affiliated with, endorsed by, or sponsored by Binance, Bybit, OKX, Coinbase, Kraken, BitMEX, Gate.io, or any other exchange. This software is not financial advice, does not custody funds, and does not guarantee trading performance.
