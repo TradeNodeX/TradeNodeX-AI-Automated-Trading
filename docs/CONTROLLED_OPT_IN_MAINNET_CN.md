@@ -126,17 +126,3 @@ TRADENODEX_AAT_COINBASE_ADVANCED_MAINNET_API_PASSPHRASE=
 每个交易所必须单独验证
 所有实盘行为留痕并经过账户级风控
 ```
-
-## 当前发布口径
-
-可以写：
-
-```text
-7 个交易所已加入受控 opt-in mainnet adapter 路线，默认关闭，需要逐交易所显式开关和账户级风控。
-```
-
-不要写：
-
-```text
-默认支持 7 个交易所主网真钱下单。
-```
