@@ -7,8 +7,10 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from .auth import require_operator_token
+from .branding import legal_payload
 from .db import add_log, create_account, create_bot, get_bot, init_db, list_accounts, list_bots, list_logs, list_orders, list_positions, update_bot
 from .executor_release import execute_strategy_orders_release
+from .legal_middleware import TradeNodeXBrandingHeadersMiddleware
 from .market_stream import poll_market_snapshot
 from .observability import RequestContextMiddleware
 from .reconciliation import reconcile_all_accounts
@@ -51,6 +53,7 @@ class MarketSnapshotIn(BaseModel):
     symbol: str
 
 app = FastAPI(title='TradeNodeX AI Automated Trading', version=__version__)
+app.add_middleware(TradeNodeXBrandingHeadersMiddleware)
 app.add_middleware(RequestContextMiddleware)
 
 @app.on_event('startup')
@@ -64,12 +67,15 @@ def ui():
 @app.get('/v1/health')
 def health():
     s = get_settings()
-    return {'ok': True, 'service': 'tradenodex-aat', 'version': __version__, 'live_trading_enabled': s.enable_live_trading, 'release_channel': 'alpha'}
+    return {'ok': True, 'service': 'tradenodex-aat', 'version': __version__, 'live_trading_enabled': s.enable_live_trading, 'release_channel': 'alpha', 'brand': 'TradeNodeX'}
+
+@app.get('/v1/legal')
+def legal(): return legal_payload()
 
 @app.get('/v1/dashboard')
 def dashboard():
     bots = list_bots(); accounts = list_accounts(); logs = list_logs(20); orders = list_orders(20); positions = list_positions()
-    return {'metrics': {'bots': len(bots), 'running': sum(1 for b in bots if b['status'] == 'RUNNING'), 'accounts': len(accounts), 'audit_logs': len(logs), 'orders': len(orders), 'positions': len(positions)}, 'bots': bots, 'accounts': accounts, 'logs': logs, 'orders': orders, 'positions': positions, 'settings': {'live_trading_enabled': get_settings().enable_live_trading}}
+    return {'metrics': {'bots': len(bots), 'running': sum(1 for b in bots if b['status'] == 'RUNNING'), 'accounts': len(accounts), 'audit_logs': len(logs), 'orders': len(orders), 'positions': len(positions)}, 'bots': bots, 'accounts': accounts, 'logs': logs, 'orders': orders, 'positions': positions, 'settings': {'live_trading_enabled': get_settings().enable_live_trading}, 'legal': legal_payload()}
 
 @app.get('/v1/accounts')
 def api_list_accounts(): return list_accounts()
