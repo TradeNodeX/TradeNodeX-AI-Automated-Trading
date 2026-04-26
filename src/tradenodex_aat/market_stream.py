@@ -2,11 +2,13 @@ import asyncio
 from typing import Iterable
 
 from .adapters import build_adapter
+from .credentials import load_env_credentials
 from .db import add_log, store_market_snapshot
 
 
-async def poll_market_snapshot(exchange: str, symbol: str) -> dict:
-    adapter = build_adapter(exchange, dry_run=True)
+async def poll_market_snapshot(exchange: str, symbol: str, environment: str = 'TESTNET') -> dict:
+    credentials = load_env_credentials(exchange, environment)
+    adapter = build_adapter(exchange, dry_run=True, credentials=credentials)
     snapshot = await adapter.fetch_market_snapshot(symbol)
     stored = store_market_snapshot(snapshot)
     add_log('Market snapshot stored', detail={'exchange': exchange, 'symbol': symbol, 'source': stored['source']})
