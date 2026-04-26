@@ -37,6 +37,7 @@ Exchange compatibility targets:
 - Every bot tick writes an audit log.
 - The worker sends the operator token when calling protected endpoints.
 - Binance Testnet adapter performs symbol precision and minimum order checks through CCXT market metadata.
+- Every HTTP response includes TradeNodeX project/risk headers.
 
 ## Quick start
 
@@ -77,6 +78,7 @@ Public read endpoints:
 
 - `GET /`
 - `GET /v1/health`
+- `GET /v1/legal`
 - `GET /v1/dashboard`
 - `GET /v1/accounts`
 - `GET /v1/bots`
@@ -104,6 +106,11 @@ curl -H "Authorization: Bearer $TRADENODEX_AAT_OPERATOR_TOKEN" \
   -X POST http://127.0.0.1:8000/v1/reconcile
 ```
 
+## Legal and branding endpoints
+
+- `GET /v1/legal` returns the TradeNodeX copyright, MIT license, risk notice, affiliation notice, and disclaimer payload.
+- Response headers include `X-TradeNodeX-Project`, `X-TradeNodeX-Owner`, `X-TradeNodeX-Copyright`, and `X-TradeNodeX-Risk-Notice`.
+
 ## Binance Futures Testnet validation
 
 Configure local `.env` only. Never commit real values.
@@ -122,6 +129,12 @@ Dry-run closure:
 python scripts/binance_testnet_validation.py --symbol BTCUSDT
 ```
 
+Generic API smoke test:
+
+```bash
+python scripts/smoke_test_api.py --symbol BTCUSDT
+```
+
 Minimum-size testnet order path, only after confirming testnet credentials and testnet balance:
 
 ```bash
@@ -134,14 +147,14 @@ TRADENODEX_AAT_ENABLE_LIVE_TRADING=true python scripts/binance_testnet_validatio
 
 ## Architecture
 
-- **Core Control Plane:** FastAPI, terminal frontend, operator-token protected writes.
+- **Core Control Plane:** FastAPI, terminal frontend, operator-token protected writes, TradeNodeX branding/risk headers.
 - **Strategy Engine:** executable strategy decisions with normalized order schema.
-- **Execution Engine:** pre-trade risk, idempotency key, client order id, remote order lookup before retry, bounded retry.
+- **Execution Engine:** pre-trade risk, idempotency key, client order id, remote order lookup before non-dry-run retry, bounded retry.
 - **Risk Engine:** exchange compatibility, live gate, max position, global max notional, side/type validation.
 - **Market Data:** Binance Testnet ticker/funding snapshot with credential-free dry-run fallback.
 - **Reconciliation:** positions, open orders, and balances.
 - **Persistence:** SQLite with WAL, busy timeout, foreign keys, schema metadata, audit logs.
-- **Observability:** audit logs, structured request id helper, health endpoint.
+- **Observability:** audit logs, request id headers, health endpoint, TradeNodeX response headers.
 - **CI/CD:** pytest, ruff, bandit, pip-audit, Docker build.
 
 ## Test
@@ -150,6 +163,12 @@ TRADENODEX_AAT_ENABLE_LIVE_TRADING=true python scripts/binance_testnet_validatio
 pip install -e .[dev]
 python -m ruff check src tests scripts
 python -m pytest -q
+```
+
+Server-level smoke test after starting API:
+
+```bash
+python scripts/smoke_test_api.py --api-base http://127.0.0.1:8000 --operator-token "$TRADENODEX_AAT_OPERATOR_TOKEN"
 ```
 
 ## Release limitations
@@ -165,6 +184,8 @@ This is an alpha release candidate, not an institutionally certified production 
 - full WebSocket market-data and user-data streams
 - PostgreSQL option for multi-process or higher-write deployments
 
-## Legal notice
+## Copyright and legal notice
 
-Exchange names are used only to describe exchange connectivity targets. This project is not affiliated with those exchanges. This software is not financial advice, does not custody funds, and does not guarantee trading performance.
+Copyright (c) 2026 TradeNodeX. Released under the MIT License.
+
+Exchange names are used only to describe exchange connectivity targets. This project is not affiliated with, endorsed by, or sponsored by Binance, Bybit, OKX, Coinbase, Kraken, BitMEX, Gate.io, or any other exchange. This software is not financial advice, does not custody funds, and does not guarantee trading performance.
