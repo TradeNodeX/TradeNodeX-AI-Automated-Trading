@@ -151,12 +151,3 @@ FastAPI + in-process SignalBus + SQLite WAL
 FastAPI + Redis Streams/NATS + PostgreSQL + separate execution worker + exchange user-data streams
 ```
 
-## 当前边界
-
-当前是单账户快速跟单 Alpha 架构，不是多账户生产级跟单网络。下一阶段建议：
-
-1. Redis Streams 替换内存队列。
-2. PostgreSQL 替换 SQLite。
-3. Binance user-data stream 接入真实订单回报。
-4. 增加 cancel / replace / reduce-only 路径。
-5. 每个交易所单独 mainnet adapter 与测试套件。
