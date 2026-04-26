@@ -5,8 +5,8 @@ from typing import Any
 
 from .credentials import ExchangeCredentials
 from .exchanges import get_exchange_spec
+from .mainnet_gate import evaluate_mainnet_gate
 from .order_utils import normalize_order_status, safe_float
-from .settings import get_settings
 
 
 class ExchangeAdapterError(RuntimeError):
@@ -14,11 +14,12 @@ class ExchangeAdapterError(RuntimeError):
 
 
 class BaseExchangeAdapter:
-    def __init__(self, exchange: str, dry_run: bool = True, credentials: ExchangeCredentials | None = None) -> None:
+    def __init__(self, exchange: str, dry_run: bool = True, credentials: ExchangeCredentials | None = None, account: dict[str, Any] | None = None) -> None:
         self.exchange = exchange
         self.spec = get_exchange_spec(exchange)
         self.dry_run = dry_run
         self.credentials = credentials or ExchangeCredentials(api_key=None, api_secret=None)
+        self.account = account or {}
 
     def make_idempotency_key(self, bot_id: str, order: dict[str, Any]) -> str:
         basis = json.dumps({'bot_id': bot_id, 'exchange': self.exchange, 'order': order}, sort_keys=True)
@@ -56,12 +57,7 @@ class BinanceFuturesTestnetAdapter(BaseExchangeAdapter):
             import ccxt  # type: ignore
         except Exception as exc:
             raise ExchangeAdapterError('ccxt is required for Binance Futures Testnet adapter.') from exc
-        client = ccxt.binanceusdm({
-            'apiKey': self.credentials.api_key,
-            'secret': self.credentials.api_secret,
-            'enableRateLimit': True,
-            'options': {'defaultType': 'future', 'adjustForTimeDifference': True},
-        })
+        client = ccxt.binanceusdm({'apiKey': self.credentials.api_key, 'secret': self.credentials.api_secret, 'enableRateLimit': True, 'options': {'defaultType': 'future', 'adjustForTimeDifference': True}})
         client.set_sandbox_mode(True)
         return client
 
@@ -83,6 +79,7 @@ class BinanceFuturesTestnetAdapter(BaseExchangeAdapter):
         return {'symbol': symbol, 'amount': amount_precise, 'price': price_precise}
 
     async def configure_symbol(self, symbol: str) -> dict[str, Any]:
+        from .settings import get_settings
         settings = get_settings()
         client = self._client()
         ccxt_symbol = _ccxt_symbol(symbol)
@@ -130,9 +127,7 @@ class BinanceFuturesTestnetAdapter(BaseExchangeAdapter):
                 except Exception:
                     return None
         row = await asyncio.to_thread(_fetch)
-        if not row:
-            return None
-        return {'exchange': self.exchange, 'status': normalize_order_status(row.get('status')), 'raw': row}
+        return {'exchange': self.exchange, 'status': normalize_order_status(row.get('status')), 'raw': row} if row else None
 
     async def fetch_positions(self) -> list[dict[str, Any]]:
         client = self._client()
@@ -167,9 +162,13 @@ class BinanceFuturesTestnetAdapter(BaseExchangeAdapter):
         return {'exchange': self.exchange, 'symbol': symbol, 'mark_price': mark_price, 'funding_rate': safe_float(funding.get('fundingRate')), 'bid': ticker.get('bid'), 'ask': ticker.get('ask'), 'source': 'binanceusdm-testnet-ccxt'}
 
 
-class CcxtExchangeAdapter(BaseExchangeAdapter):
+class BlockedLiveAdapter(BaseExchangeAdapter):
+    def __init__(self, exchange: str, reason: str, dry_run: bool, credentials: ExchangeCredentials | None = None, account: dict[str, Any] | None = None) -> None:
+        super().__init__(exchange, dry_run=dry_run, credentials=credentials, account=account)
+        self.reason = reason
+
     async def place_live_order(self, order: dict[str, Any]) -> dict[str, Any]:
-        raise ExchangeAdapterError('Live order placement for this exchange is blocked until its adapter has passed testnet validation.')
+        raise ExchangeAdapterError(self.reason)
 
 
 def _ccxt_symbol(symbol: str) -> str:
@@ -183,7 +182,15 @@ def _plain_symbol(symbol: str) -> str:
     return symbol.replace('/', '').replace(':USDT', '').upper()
 
 
-def build_adapter(exchange: str, dry_run: bool = True, credentials: ExchangeCredentials | None = None) -> BaseExchangeAdapter:
-    if exchange == 'BINANCE_FUTURES' and credentials and credentials.environment == 'TESTNET':
-        return BinanceFuturesTestnetAdapter(exchange, dry_run=dry_run, credentials=credentials)
-    return CcxtExchangeAdapter(exchange, dry_run=dry_run, credentials=credentials)
+def build_adapter(exchange: str, dry_run: bool = True, credentials: ExchangeCredentials | None = None, account: dict[str, Any] | None = None) -> BaseExchangeAdapter:
+    if dry_run:
+        return BaseExchangeAdapter(exchange, dry_run=True, credentials=credentials, account=account)
+    if credentials and credentials.environment == 'TESTNET' and exchange == 'BINANCE_FUTURES':
+        return BinanceFuturesTestnetAdapter(exchange, dry_run=False, credentials=credentials, account=account)
+    if credentials and credentials.environment == 'MAINNET':
+        gate = evaluate_mainnet_gate(account or {}, credentials)
+        if not gate.allowed:
+            return BlockedLiveAdapter(exchange, f'Mainnet blocked: {gate.reason}', dry_run=False, credentials=credentials, account=account)
+        from .controlled_mainnet import ControlledMainnetCcxtAdapter
+        return ControlledMainnetCcxtAdapter(exchange, dry_run=False, credentials=credentials, account=account)
+    return BlockedLiveAdapter(exchange, 'Live order placement is blocked until testnet or controlled mainnet gate passes.', dry_run=False, credentials=credentials, account=account)
