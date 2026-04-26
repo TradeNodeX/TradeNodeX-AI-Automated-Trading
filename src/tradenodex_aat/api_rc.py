@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from .auth import require_operator_token
 from .db import add_log, create_account, create_bot, get_bot, init_db, list_accounts, list_bots, list_logs, list_orders, list_positions, update_bot
-from .executor_rc import execute_strategy_orders_rc
+from .executor_release import execute_strategy_orders_release
 from .market_stream import poll_market_snapshot
 from .observability import RequestContextMiddleware
 from .reconciliation import reconcile_all_accounts
@@ -111,7 +111,7 @@ async def tick(bot_id: str):
     snapshot = await _snapshot_for_bot(bot)
     limits = RiskLimits(max_position_usdt=bot['max_position_usdt'], risk_per_tick_usdt=bot['risk_per_tick_usdt'], max_grid_levels=bot['grid_levels'])
     decision = asdict(run_strategy(bot['type'], snapshot, limits)); decision['bot'] = bot['name']
-    execution = await execute_strategy_orders_rc(bot, decision)
+    execution = await execute_strategy_orders_release(bot, decision)
     add_log('Strategy tick completed', bot_id=bot_id, detail={'decision': decision, 'execution': execution})
     return {'decision': decision, 'execution': execution}
 
